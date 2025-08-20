@@ -148,7 +148,7 @@ app.post(
     body("signee.parentLastName").trim().escape().isLength({ min: 1, max: 50 }),
     body("signee.parentPhoneNumber")
       .trim()
-      .isMobilePhone()
+      .matches(/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/)
       .withMessage("Invalid phone number"),
   ],
   async (req, res) => {
