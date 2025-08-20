@@ -162,7 +162,6 @@ app.post(
 
     try {
       const dbEntry = await Gymnastics.findOne();
-      console.log(dbEntry.classes[0].sessions);
       if (!dbEntry) return res.status(500).send("No class data found");
 
       const decodedClassName = he.decode(className);
@@ -171,18 +170,20 @@ app.post(
       );
       if (!classItem) return res.status(404).send("Class not found");
 
-      console.log(classItem);
-
       const session = classItem.sessions.find(
         (s) => s.day === day && s.time === time
       );
       if (!session) return res.status(404).send("Session not found");
 
-      const alreadySignedUp = session.signees.some(
-        (s) =>
-          s.childFirstName === signee.childFirstName &&
-          s.childLastName === signee.childLastName
-      );
+      const signeeFirstName = signee.childFirstName.toLowerCase();
+      const signeeLastName = signee.childLastName.toLowerCase();
+
+      const alreadySignedUp = session.signees.some((s) => {
+        return (
+          s.childFirstName === signeeFirstName &&
+          s.childLastName === signeeLastName
+        );
+      });
 
       if (alreadySignedUp) return res.status(400).send("Already signed up");
 
@@ -194,8 +195,6 @@ app.post(
         { "cls.name": decodedClassName },
         { "session.day": day, "session.time": time },
       ];
-
-      console.log(className);
 
       const updatedDoc = await Gymnastics.findOneAndUpdate(
         {
