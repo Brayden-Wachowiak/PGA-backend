@@ -41,10 +41,10 @@ const EventSchema = new mongoose.Schema(
 const Event = mongoose.model("Event", EventSchema, "events");
 const SigneeSchema = new mongoose.Schema(
   {
-    childFirstName: String,
-    childLastName: String,
-    parentFirstName: String,
-    parentLastName: String,
+    childFirstName: { type: String, lowercase: true },
+    childLastName: { type: String, lowercase: true },
+    parentFirstName: { type: String, lowercase: true },
+    parentLastName: { type: String, lowercase: true },
     parentPhoneNumber: String,
   },
   { _id: false }
@@ -184,14 +184,25 @@ app.post(
         return res.status(400).send("Session is full");
       }
 
-      await Gymnastics.updateOne(
+      const updatedDoc = await Gymnastics.findOneAndUpdate(
         {
           "classes.name": className,
           "classes.sessions.day": day,
           "classes.sessions.time": time,
         },
-        { $push: { "classes.$.sessions.$[session].signees": signee } },
-        { arrayFilters: [{ "session.day": day, "session.time": time }] }
+        {
+          $push: { "classes.$[cls].sessions.$[session].signees": signee },
+        },
+        {
+          arrayFilters: [
+            { "cls.name": className },
+            {
+              "session.day": day,
+              "session.time": time,
+            },
+          ],
+          new: true, // return the updated document
+        }
       );
 
       res.json({ message: "Signup successful" });
