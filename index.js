@@ -3,7 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
-
+const he = require("he");
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -162,10 +162,16 @@ app.post(
 
     try {
       const dbEntry = await Gymnastics.findOne();
+      console.log(dbEntry.classes[0].sessions);
       if (!dbEntry) return res.status(500).send("No class data found");
 
-      const classItem = dbEntry.classes.find((c) => c.name === className);
+      const decodedClassName = he.decode(className);
+      const classItem = dbEntry.classes.find(
+        (c) => c.name === decodedClassName
+      );
       if (!classItem) return res.status(404).send("Class not found");
+
+      console.log(classItem);
 
       const session = classItem.sessions.find(
         (s) => s.day === day && s.time === time
@@ -184,9 +190,16 @@ app.post(
         return res.status(400).send("Session is full");
       }
 
+      const filters = [
+        { "cls.name": decodedClassName },
+        { "session.day": day, "session.time": time },
+      ];
+
+      console.log(className);
+
       const updatedDoc = await Gymnastics.findOneAndUpdate(
         {
-          "classes.name": className,
+          "classes.name": decodedClassName,
           "classes.sessions.day": day,
           "classes.sessions.time": time,
         },
@@ -194,13 +207,7 @@ app.post(
           $push: { "classes.$[cls].sessions.$[session].signees": signee },
         },
         {
-          arrayFilters: [
-            { "cls.name": className },
-            {
-              "session.day": day,
-              "session.time": time,
-            },
-          ],
+          arrayFilters: filters,
           new: true, // return the updated document
         }
       );
